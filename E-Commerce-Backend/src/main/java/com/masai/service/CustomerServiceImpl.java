@@ -71,7 +71,7 @@ public class CustomerServiceImpl implements CustomerService{
 	@Override
 	public Customer getLoggedInCustomerDetails(String token){
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		

@@ -2,6 +2,7 @@ package com.masai.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +48,7 @@ public class CartServiceImpl implements CartService {
 	public Cart addProductToCart(CartDTO cartDto, String token) {
 
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -69,14 +70,14 @@ public class CartServiceImpl implements CartService {
 		CartItem item = cartItemService.createItemforCart(cartDto);
 		
 		
-		if(cartItems.size() == 0) {
+		if(cartItems.isEmpty()) {
 			cartItems.add(item);
 			customerCart.setCartTotal(item.getCartProduct().getPrice());
 		}
 		else {
 			boolean flag = false;
 			for(CartItem c: cartItems) {
-				if(c.getCartProduct().getProductId() == cartDto.getProductId()) {
+				if(Objects.equals(c.getCartProduct().getProductId(), cartDto.getProductId())) {
 					c.setCartItemQuantity(c.getCartItemQuantity() + 1);
 					customerCart.setCartTotal(customerCart.getCartTotal() + c.getCartProduct().getPrice());
 					flag = true;
@@ -100,7 +101,7 @@ public class CartServiceImpl implements CartService {
 		
 		System.out.println("Inside get cart");
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -140,7 +141,7 @@ public class CartServiceImpl implements CartService {
 	
 	@Override
 	public Cart removeProductFromCart(CartDTO cartDto, String token) {
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -159,7 +160,7 @@ public class CartServiceImpl implements CartService {
 		
 		List<CartItem> cartItems = customerCart.getCartItems();
 		
-		if(cartItems.size() == 0) {
+		if(cartItems.isEmpty()) {
 			throw new CartItemNotFound("Cart is empty");
 		}
 		
@@ -187,7 +188,7 @@ public class CartServiceImpl implements CartService {
 			throw new CartItemNotFound("Product not added to cart");
 		}
 		
-		if(cartItems.size() == 0) {
+		if(cartItems.isEmpty()) {
 			cartDao.save(customerCart);
 			throw new CartItemNotFound("Cart is empty now");
 		}
