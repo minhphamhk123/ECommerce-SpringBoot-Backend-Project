@@ -14,7 +14,7 @@ public class SellerDTO {
 	
 	
 	@NotNull(message="Please enter your mobile Number")
-	@Pattern(regexp="[6789]{1}[0-9]{9}", message="Enter a valid Mobile Number")
+	@Pattern(regexp="[0-9]{10}", message="Enter a valid Mobile Number")
 	private String mobile;
 	
 	

@@ -101,7 +101,7 @@ public class ProductServiceImpl implements ProductService {
 	public List<Product> getAllProductsIncatalog() {
 		List<Product> list = prodDao.findAll();
 		
-		if (list.size() > 0) {
+		if (!list.isEmpty()) {
 			return list;
 		} else
 			throw new ProductNotFoundException("No products in catalog");
@@ -112,8 +112,7 @@ public class ProductServiceImpl implements ProductService {
 	public List<ProductDTO> getProductsOfCategory(CategoryEnum catenum) {
 
 		List<ProductDTO> list = prodDao.getAllProductsInACategory(catenum);
-		if (list.size() > 0) {
-
+		if (!list.isEmpty()) {
 			return list;
 		} else
 			throw new CategoryNotFoundException("No products found with category:" + catenum);
@@ -124,7 +123,7 @@ public class ProductServiceImpl implements ProductService {
 
 		List<ProductDTO> list = prodDao.getProductsWithStatus(status);
 
-		if (list.size() > 0) {
+		if (!list.isEmpty()) {
 			return list;
 		} else
 			throw new ProductNotFoundException("No products found with given status:" + status);

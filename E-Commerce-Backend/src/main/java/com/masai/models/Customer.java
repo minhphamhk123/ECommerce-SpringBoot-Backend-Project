@@ -37,6 +37,9 @@ public class Customer {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Integer customerId;
+
+	@NotNull(message = "mongoDB ID cannot be NULL")
+	private String mongoDbID;
 	
 	@NotNull(message = "First Name cannot be NULL")
 	@Pattern(regexp = "[A-Za-z.\\s]+", message = "Enter valid characters in first name")
@@ -45,10 +48,13 @@ public class Customer {
 	@NotNull(message = "Last Name cannot be NULL")
 	@Pattern(regexp = "[A-Za-z.\\s]+", message = "Enter valid characters in last name")
 	private String lastName;
+
+	@NotNull(message = "User Name cannot be NULL")
+	private String userName;
 	
 	@NotNull(message = "Please enter the mobile Number")
 	@Column(unique = true)
-	@Pattern(regexp = "[6789]{1}[0-9]{9}", message = "Enter valid 10 digit mobile number")
+	@Pattern(regexp = "[0-9]{10}", message = "Enter valid 10 digit mobile number")
 	private String mobileNo;
 	
 	
@@ -60,8 +66,9 @@ public class Customer {
 	@NotNull(message = "Please enter the password")
 	@Pattern(regexp = "[A-Za-z0-9!@#$%^&*_]{8,15}", message = "Password must be 8-15 characters in length and can include A-Z, a-z, 0-9, or special characters !@#$%^&*_")
 	private String password;
-	
-	
+
+	private String profilePicture;
+
 	private LocalDateTime createdOn;
 	
 	@Embedded

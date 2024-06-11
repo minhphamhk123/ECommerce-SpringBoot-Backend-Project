@@ -1,10 +1,7 @@
 package com.masai.service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,6 +20,11 @@ import com.masai.models.SessionDTO;
 import com.masai.models.UserSession;
 import com.masai.repository.CustomerDao;
 import com.masai.repository.SessionDao;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 
 @Service
 public class CustomerServiceImpl implements CustomerService{
@@ -35,7 +37,9 @@ public class CustomerServiceImpl implements CustomerService{
 	
 	@Autowired
 	private SessionDao sessionDao;
-	
+
+	@Autowired
+	private RestTemplate restTemplate;
 	
 	// Method to add a new customer
 	
@@ -54,7 +58,7 @@ public class CustomerServiceImpl implements CustomerService{
 		
 		customer.setOrders(new ArrayList<Order>());
 
-		Optional<Customer> existing = customerDao.findByMobileNo(customer.getMobileNo());
+		Optional<Customer> existing = customerDao.findByEmailId(customer.getEmailId());
 		
 		if(existing.isPresent())
 			throw new CustomerException("Customer already exists. Please try to login with your mobile no");
@@ -99,7 +103,7 @@ public class CustomerServiceImpl implements CustomerService{
 		
 		// update to seller
 		
-		if(token.contains("seller") == false) {
+		if(!token.contains("seller")) {
 			throw new LoginException("Invalid session token.");
 		}
 		
@@ -107,7 +111,7 @@ public class CustomerServiceImpl implements CustomerService{
 		
 		List<Customer> customers = customerDao.findAll();
 		
-		if(customers.size() == 0)
+		if(customers.isEmpty())
 			throw new CustomerNotFoundException("No record exists");
 		
 		return customers;
@@ -120,7 +124,7 @@ public class CustomerServiceImpl implements CustomerService{
 	public Customer updateCustomer(CustomerUpdateDTO customer, String token) throws CustomerNotFoundException {
 		
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -134,15 +138,12 @@ public class CustomerServiceImpl implements CustomerService{
 			throw new CustomerNotFoundException("Customer does not exist with given mobile no or email-id");
 		
 		Customer existingCustomer = null;
-		
-		if(opt.isPresent())
-			existingCustomer = opt.get();
-		else
-			existingCustomer = res.get();
+
+        existingCustomer = opt.orElseGet(res::get);
 		
 		UserSession user = sessionDao.findByToken(token).get();
 		
-		if(existingCustomer.getCustomerId() == user.getUserId()) {
+		if(Objects.equals(existingCustomer.getCustomerId(), user.getUserId())) {
 		
 			if(customer.getFirstName() != null) {
 				existingCustomer.setFirstName(customer.getFirstName());
@@ -162,6 +163,16 @@ public class CustomerServiceImpl implements CustomerService{
 			
 			if(customer.getPassword() != null) {
 				existingCustomer.setPassword(customer.getPassword());
+			}
+
+			if(customer.getUserName() != null) {
+				existingCustomer.setUserName(customer.getUserName());
+			}
+
+			if(customer.getProfilePicture() != null) {
+				existingCustomer.setProfilePicture(customer.getProfilePicture());
+			} else {
+				existingCustomer.setProfilePicture("https://img.freepik.com/premium-vector/man-avatar-profile-picture-vector-illustration_268834-538.jpg");
 			}
 			
 			if(customer.getAddress() != null) {			
@@ -187,7 +198,7 @@ public class CustomerServiceImpl implements CustomerService{
 	@Override
 	public Customer updateCustomerMobileNoOrEmailId(CustomerUpdateDTO customerUpdateDTO, String token) throws CustomerNotFoundException {
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -221,7 +232,7 @@ public class CustomerServiceImpl implements CustomerService{
 	public SessionDTO updateCustomerPassword(CustomerDTO customerDTO, String token) {
 		
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 			
@@ -238,7 +249,7 @@ public class CustomerServiceImpl implements CustomerService{
 		Customer existingCustomer = opt.get();
 		
 		
-		if(customerDTO.getMobileId().equals(existingCustomer.getMobileNo()) == false) {
+		if(!customerDTO.getMobileId().equals(existingCustomer.getMobileNo())) {
 			throw new CustomerException("Verification error. Mobile number does not match");
 		}
 		
@@ -264,7 +275,7 @@ public class CustomerServiceImpl implements CustomerService{
 	
 	@Override
 	public Customer updateAddress(Address address, String type, String token) throws CustomerException {
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 			
@@ -291,7 +302,7 @@ public class CustomerServiceImpl implements CustomerService{
 	@Override
 	public Customer updateCreditCardDetails(String token, CreditCard card) throws CustomerException{
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -318,7 +329,7 @@ public class CustomerServiceImpl implements CustomerService{
 	@Override
 	public SessionDTO deleteCustomer(CustomerDTO customerDTO, String token) throws CustomerNotFoundException {
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -339,14 +350,35 @@ public class CustomerServiceImpl implements CustomerService{
 
 		session.setToken(token);
 		
-		if(existingCustomer.getMobileNo().equals(customerDTO.getMobileId()) 
+		if(existingCustomer.getEmailId().equals(customerDTO.getEmailId())
 				&& existingCustomer.getPassword().equals(customerDTO.getPassword())) {
+
+			// Remove the "customer_" prefix
+			String userIdFromToken = token.replace("customer_", "");
 			
 			customerDao.delete(existingCustomer);
 			
 			loginService.logoutCustomer(session);
 			
 			session.setMessage("Deleted account and logged out successfully");
+
+			// Call external API to delete user
+			String url = "http://localhost:8080/api/user/delete/" + existingCustomer.getMongoDbID();
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("userId", userIdFromToken);
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+
+			try {
+				ResponseEntity<Void> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+				if (response.getStatusCode().is2xxSuccessful()) {
+					System.out.println("External user deletion successful.");
+				} else {
+					System.err.println("Failed to delete external user: " + response.getStatusCode());
+				}
+			} catch (Exception e) {
+				System.err.println("Failed to call external delete API: " + e.getMessage());
+				// You might want to handle this exception, e.g., log it or notify the user
+			}
 			
 			return session;
 		}
@@ -361,7 +393,7 @@ public class CustomerServiceImpl implements CustomerService{
 	@Override
 	public Customer deleteAddress(String type, String token) throws CustomerException, CustomerNotFoundException {
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -376,7 +408,7 @@ public class CustomerServiceImpl implements CustomerService{
 		
 		Customer existingCustomer = opt.get();
 		
-		if(existingCustomer.getAddress().containsKey(type) == false)
+		if(!existingCustomer.getAddress().containsKey(type))
 			throw new CustomerException("Address type does not exist");
 		
 		existingCustomer.getAddress().remove(type);
@@ -389,7 +421,7 @@ public class CustomerServiceImpl implements CustomerService{
 	@Override
 	public List<Order> getCustomerOrders(String token) throws CustomerException {
 		
-		if(token.contains("customer") == false) {
+		if(!token.contains("customer")) {
 			throw new LoginException("Invalid session token for customer");
 		}
 		
@@ -406,7 +438,7 @@ public class CustomerServiceImpl implements CustomerService{
 		
 		List<Order> myOrders = existingCustomer.getOrders();
 		
-		if(myOrders.size() == 0)
+		if(myOrders.isEmpty())
 			throw new CustomerException("No orders found");
 		
 		return myOrders;

@@ -36,20 +36,20 @@ public class LoginLogoutServiceImpl implements LoginLogoutService{
 
  
 	
-	// Method to login a customer
+	// Method to log in a customer
 
 	@Override
 	public UserSession loginCustomer(CustomerDTO loginCustomer) {
 		
-		Optional<Customer> res = customerDao.findByMobileNo(loginCustomer.getMobileId());
+		Optional<Customer> res = customerDao.findByEmailId(loginCustomer.getEmailId());
 		
 		if(res.isEmpty())
-			throw new CustomerNotFoundException("Customer record does not exist with given mobile number");
+			throw new CustomerNotFoundException("Customer record does not exist with given email");
 		
 		Customer existingCustomer = res.get();
 		
 		Optional<UserSession> opt = sessionDao.findByUserId(existingCustomer.getCustomerId());
-		
+		// check already log in?
 		if(opt.isPresent()) {
 			
 			UserSession user = opt.get();
@@ -59,7 +59,6 @@ public class LoginLogoutServiceImpl implements LoginLogoutService{
 			}
 			else
 				throw new LoginException("User already logged in");
-			
 		}
 		
 		
@@ -70,10 +69,10 @@ public class LoginLogoutServiceImpl implements LoginLogoutService{
 			newSession.setUserId(existingCustomer.getCustomerId());
 			newSession.setUserType("customer");
 			newSession.setSessionStartTime(LocalDateTime.now());
-			newSession.setSessionEndTime(LocalDateTime.now().plusHours(1));
+			newSession.setSessionEndTime(LocalDateTime.now().plusHours(10));
 			
 			UUID uuid = UUID.randomUUID();
-			String token = "customer_" + uuid.toString().split("-")[0];
+			String token = "customer_" + loginCustomer.getPreToken();
 			
 			newSession.setToken(token);
 			
@@ -85,7 +84,7 @@ public class LoginLogoutServiceImpl implements LoginLogoutService{
 	}
 
 	
-	// Method to logout a customer
+	// Method to log out a customer
 	
 	@Override
 	public SessionDTO logoutCustomer(SessionDTO sessionToken) {
@@ -96,14 +95,14 @@ public class LoginLogoutServiceImpl implements LoginLogoutService{
 		
 		Optional<UserSession> opt = sessionDao.findByToken(token);
 		
-		if(!opt.isPresent())
+		if(opt.isEmpty())
 			throw new LoginException("User not logged in. Invalid session token. Login Again.");
 		
 		UserSession session = opt.get();
 		
 		sessionDao.delete(session);
 		
-		sessionToken.setMessage("Logged out sucessfully.");
+		sessionToken.setMessage("Logged out successfully.");
 		
 		return sessionToken;
 	}
@@ -187,7 +186,7 @@ public class LoginLogoutServiceImpl implements LoginLogoutService{
 	}
 
 	
-	// Method to logout a seller and delete his session token
+	// Method to log out a seller and delete his session token
 	
 	@Override
 	public SessionDTO logoutSeller(SessionDTO session) {
@@ -198,14 +197,14 @@ public class LoginLogoutServiceImpl implements LoginLogoutService{
 		
 		Optional<UserSession> opt = sessionDao.findByToken(token);
 		
-		if(!opt.isPresent())
+		if(opt.isEmpty())
 			throw new LoginException("User not logged in. Invalid session token. Login Again.");
 		
 		UserSession user = opt.get();
 		
 		sessionDao.delete(user);
 		
-		session.setMessage("Logged out sucessfully.");
+		session.setMessage("Logged out successfully.");
 		
 		return session;
 	}
@@ -222,7 +221,7 @@ public class LoginLogoutServiceImpl implements LoginLogoutService{
 		
 		System.out.println(users);
 		
-		if(users.size() > 0) {
+		if(!users.isEmpty()) {
 			for(UserSession user:users) {
 				System.out.println(user.getUserId());
 				LocalDateTime endTime = user.getSessionEndTime();
