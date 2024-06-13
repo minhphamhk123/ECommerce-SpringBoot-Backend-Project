@@ -1,5 +1,6 @@
 package com.masai;
 
+import com.masai.service.AuthService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,13 +12,17 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.context.ApplicationContext;
+
 
 
 @SpringBootApplication
 public class ECommerceBackendApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ECommerceBackendApplication.class, args);
+		ApplicationContext context = SpringApplication.run(ECommerceBackendApplication.class, args);
+		AuthService test = context.getBean(AuthService.class);
+		test.getBook();
 	}
 	
 	@Bean
@@ -33,5 +38,6 @@ public class ECommerceBackendApplication {
 	public RestTemplate restTemplate() {
 		return new RestTemplate();
 	}
+
 
 }

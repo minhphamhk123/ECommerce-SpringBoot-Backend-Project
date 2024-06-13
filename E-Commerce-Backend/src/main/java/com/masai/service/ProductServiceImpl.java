@@ -156,7 +156,7 @@ public class ProductServiceImpl implements ProductService {
 		
 		List<ProductDTO> list = prodDao.getProductsOfASeller(id);
 		
-		if(list.size()>0) {
+		if(!list.isEmpty()) {
 			
 			return list;
 			

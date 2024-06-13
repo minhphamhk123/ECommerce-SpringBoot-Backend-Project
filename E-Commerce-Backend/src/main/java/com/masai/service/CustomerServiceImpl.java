@@ -169,7 +169,7 @@ public class CustomerServiceImpl implements CustomerService{
 				existingCustomer.setUserName(customer.getUserName());
 			}
 
-			if(customer.getProfilePicture() != null) {
+			if(!Objects.equals(customer.getProfilePicture(), "")) {
 				existingCustomer.setProfilePicture(customer.getProfilePicture());
 			} else {
 				existingCustomer.setProfilePicture("https://img.freepik.com/premium-vector/man-avatar-profile-picture-vector-illustration_268834-538.jpg");
